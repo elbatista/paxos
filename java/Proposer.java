@@ -28,7 +28,6 @@ public class Proposer extends PaxosEntity {
 
   @Override
   protected void deliverMessage(Message m) {
-    
     switch(m.getType()){
       case NULL: messageFromClient(m); break;
       case Phase1B: message1B(m); break;
@@ -39,14 +38,34 @@ public class Proposer extends PaxosEntity {
 
   private void message1B(Message m) {
     System.out.println("Proposer: message from acceptors - 1B");
+
+    // DO STUFF
+
+    m.setType(MessageTypes.Phase2A);
+    sendToAcceptors(m);
+
   }
 
   private void message2B(Message m) {
     System.out.println("Proposer: message from acceptors - 2B");
+
+    // DO STUFF
+
+    m.setType(MessageTypes.DECIDE);
+    sendToLearners(m);
+
+  }
+
+  private void sendToLearners(Message m) {
+    String [] hostPort = getConfig().get("learners").split(":");
+    sendMessage(m, hostPort[0], Integer.valueOf(hostPort[1]));
   }
 
   private void messageFromClient(Message m) {
     System.out.println("Proposer: message from client");
+
+    // DO STUFF
+
     m.setType(MessageTypes.Phase1A);
     sendToAcceptors(m);
   }

@@ -44,11 +44,20 @@ public class Acceptor extends PaxosEntity {
 
   private void message1A(Message m) {
     System.out.println("Acceptor: message from proposer - 1A");
+
+    // DO STUFF
+
     m.setType(MessageTypes.Phase1B);
     sendToProposers(m);
   }
 
   private void message2A(Message m) {
+    System.out.println("Acceptor: message from proposer - 2A");
+
+    // DO STUFF
+
+    m.setType(MessageTypes.Phase2B);
+    sendToProposers(m);
   }
 
   private void sendToProposers(Message m) {

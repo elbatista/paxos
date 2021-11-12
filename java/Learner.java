@@ -12,7 +12,10 @@ public class Learner extends PaxosEntity {
 
   @Override
   protected void deliverMessage(Message m) {
-    
+    switch(m.getType()){
+      case DECIDE: System.out.println("Decision received!!");
+      default: return;
+    }
   }
 
 } 
