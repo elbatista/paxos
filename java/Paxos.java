@@ -22,7 +22,8 @@ public class Paxos {
 			reader = new BufferedReader(new FileReader(config_file));
 			String line = reader.readLine();
 			while (line != null) {
-        config.put(line.split(" ")[0], line.split(" ")[1]+":"+line.split(" ")[2]);
+        String [] lineSplit = line.split("\\s+");
+        config.put(lineSplit[0], lineSplit[1]+":"+lineSplit[2]);
 				line = reader.readLine();
 			}
 			reader.close();
