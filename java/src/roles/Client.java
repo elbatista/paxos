@@ -1,16 +1,20 @@
+package src.roles;
 import java.util.HashMap;
+
+import src.message.Message;
+import src.message.MessageTypes;
+import src.util.PaxosEntity;
 
 public class Client extends PaxosEntity {
 
   public Client(int id, HashMap<String, String> config){
     super(id, config);
-    System.out.println("Hello from Client with id " + getId() + " config " + getConfig());
+    System.out.println("Running Client " + getId() + "; config: " + getConfig().get("clients"));
 
     Message m = new Message();
-    m.setC_val(123);
-    m.setType(MessageTypes.NULL);
+    m.setClientValue(7567);
+    m.setType(MessageTypes.CLIENT);
     sendToProposers(m);
-
   }
 
   private void sendToProposers(Message m){

@@ -1,7 +1,13 @@
+package src;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+
+import src.roles.Acceptor;
+import src.roles.Client;
+import src.roles.Learner;
+import src.roles.Proposer;
 
 public class Paxos {
 
@@ -33,8 +39,8 @@ public class Paxos {
     return config;
   }
 
-  public static void main(String[] args){  
+  public static void main(String[] args){
     new Paxos(args[0], Integer.valueOf(args[1]), args[2]);  
   }
 
-}  
+}

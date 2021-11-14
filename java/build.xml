@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<project default="main">
+	<property name="base.dir" location="." />
+	<property name="src.dir" location="src" />
+	<property name="build.dir" location="bin" />
+	<property name="dist.dir" location="bin" />
+
+	<target name="main" depends="compile, jar" description="Main target">
+		<echo>Building the Project...</echo>
+	</target>
+
+	<target name="compile" description="Compilation target">
+		<javac source="1.8" target="1.8" destdir="${build.dir}" nowarn="on" debug="true" includeantruntime="false">
+			<src path="${src.dir}" />
+		</javac>
+		<echo>Compiling classes...</echo>
+	</target>
+
+	<target name="jar" description="Compression target">
+		<jar jarfile="${dist.dir}/Paxos.jar">
+			<manifest>
+				<attribute name="Main-Class" value="src/Paxos" />
+			</manifest>
+			<fileset dir="${build.dir}">
+				<include name="**/*.class" />
+			</fileset>
+			<fileset dir="${base.dir}">
+				<include name="*.conf" />
+			</fileset>
+		</jar>
+		<echo>Building the .jar file...</echo>
+	</target>
+
+</project>

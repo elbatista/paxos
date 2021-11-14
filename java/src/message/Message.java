@@ -1,3 +1,4 @@
+package src.message;
 import java.io.Serializable;
 
 public class Message implements Serializable {
@@ -8,6 +9,14 @@ public class Message implements Serializable {
     private long v_rnd; // highest-numbered round the acceptor has cast a vote
     private long v_val; // value voted by the acceptor in round v-rnd, initially null
 
+    private long clientValue;
+
+    public long getClientValue() {
+        return clientValue;
+    }
+    public void setClientValue(long clientValue) {
+        this.clientValue = clientValue;
+    }
     public MessageTypes getType() {
         return type;
     }
