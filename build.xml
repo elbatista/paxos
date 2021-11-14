@@ -25,7 +25,7 @@
 				<include name="**/*.class" />
 			</fileset>
 			<fileset dir="${base.dir}">
-				<include name="*.conf" />
+				<include name="conf/*" />
 			</fileset>
 		</jar>
 		<echo>Building the .jar file...</echo>
