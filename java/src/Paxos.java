@@ -11,12 +11,12 @@ import src.roles.Proposer;
 
 public class Paxos {
 
-  public Paxos(String role, int id, String config_file){
+  public Paxos(String role, int id, String config_file, int value_to_propose){
     switch (role) {
       case "acceptor" : new Acceptor(id, parseConfigFile(config_file)); break;
       case "proposer" : new Proposer(id, parseConfigFile(config_file)); break;
       case "learner" : new Learner(id, parseConfigFile(config_file)); break;
-      case "client" : new Client(id, parseConfigFile(config_file)); break;
+      case "client" : new Client(id, parseConfigFile(config_file), value_to_propose); break;
       default: break;
     }
   }
@@ -40,7 +40,13 @@ public class Paxos {
   }
 
   public static void main(String[] args){
-    new Paxos(args[0], Integer.valueOf(args[1]), args[2]);  
+    int value_to_propose = -1;
+    try{
+      value_to_propose = Integer.valueOf(args[3]);
+    }
+    catch(Exception e){}
+
+    new Paxos(args[0], Integer.valueOf(args[1]), args[2], value_to_propose);  
   }
 
 }

@@ -3,91 +3,68 @@ import java.util.HashMap;
 
 import src.message.Message;
 import src.message.MessageTypes;
+import src.util.ConsensusInstance;
 import src.util.PaxosEntity;
 
 public class Acceptor extends PaxosEntity {
 
-  private long rnd;   // highest-numbered round the acceptor has participated
-  private long v_rnd; // highest-numbered round the acceptor has cast a vote
-  private long v_val; // value voted by the acceptor in round v-rnd, initially null
-  
-  public long getRnd() {
-    return rnd;
-  }
-  public void setRnd(long rnd) {
-      this.rnd = rnd;
-  }
-  public long getV_rnd() {
-      return v_rnd;
-  }
-  public void setV_rnd(long v_rnd) {
-      this.v_rnd = v_rnd;
-  }
-  public long getV_val() {
-      return v_val;
-  }
-  public void setV_val(long v_val) {
-      this.v_val = v_val;
-  }
-
   public Acceptor(int id, HashMap<String, String> config){
     super(id, config);
-    String conf = getConfig().get("acceptors");
+    String conf = get_config().get("acceptors");
     String [] configSplit = conf.split(":");
     String host = configSplit[0];
     int port = Integer.valueOf(configSplit[1]);
-    System.out.println("Running Acceptor " + getId() + "; config: " + conf);
-    setRnd(0);
-    setV_rnd(0);
-    setV_val(0);
-    createListener(host, port);
+    System.out.println("Running Acceptor " + get_id() + "; config: " + conf);
+    create_listener(host, port);
   }
 
   @Override
-  protected void deliverMessage(Message m) {
-    switch(m.getType()){
-      case PHASE_1A: message1A(m); break;
-      case PHASE_2A: message2A(m); break;
+  protected void deliver_message(Message m) {
+    switch(m.get_type()){
+      case PHASE_1A: message_1A(m); break;
+      case PHASE_2A: message_2A(m); break;
       default: return;
     }    
   }
 
-  private void message1A(Message m) {
+  private void message_1A(Message m) {
+    ConsensusInstance instance = get_instance(m.get_instance_id());
     // upon receiving (PHASE 1A, c-rnd) from proposer
     //    if c-rnd > rnd then
     //      rnd ← c-rnd
     //      send (PHASE 1B, rnd, v-rnd, v-val) to proposer
-    if(m.getC_rnd() > getRnd()){
-      System.out.println("Message 1A: " + m.getC_rnd() +", "+ getRnd());
-      setRnd(m.getC_rnd());
-      m.setType(MessageTypes.PHASE_1B);
-      m.setRnd(getRnd());
-      m.setV_rnd(getV_rnd());
-      m.setV_val(getV_val());
-      sendToProposers(m);
+    if(m.get_c_rnd() > instance.get_rnd()){
+      System.out.println("Instance "+instance.get_id()+", Message 1A, round " + m.get_c_rnd());
+      instance.set_rnd(m.get_c_rnd());
+      m.set_type(MessageTypes.PHASE_1B);
+      m.set_rnd(instance.get_rnd());
+      m.set_v_rnd(instance.get_v_rnd());
+      m.set_v_val(instance.get_v_val());
+      send_to_proposers(m);
     }
   }
 
-  private void message2A(Message m) {
+  private void message_2A(Message m) {
+    ConsensusInstance instance = get_instance(m.get_instance_id());
     // upon receiving (PHASE 2A, c-rnd, c-val) from proposer
     //    if c-rnd ≥ rnd then
     //        v-rnd ← c-rnd
     //        v-val ← c-val
     //        send (PHASE 2B, v-rnd, v-val) to proposer
-    if(m.getC_rnd() >= getRnd()){
-      System.out.println("Message 2A");
-      setV_rnd(m.getC_rnd());
-      setV_val(m.getC_val());
-      m.setType(MessageTypes.PHASE_2B);
-      m.setV_rnd(getV_rnd());
-      m.setV_val(getV_val());
-      sendToProposers(m);
+    if(m.get_c_rnd() >= instance.get_rnd()){
+      System.out.println("Instance "+instance.get_id()+", Message 2A, round " + m.get_c_rnd());
+      instance.set_v_rnd(m.get_c_rnd());
+      instance.set_v_val(m.get_c_val());
+      m.set_type(MessageTypes.PHASE_2B);
+      m.set_v_rnd(instance.get_v_rnd());
+      m.set_v_val(instance.get_v_val());
+      send_to_proposers(m);
     }
   }
 
-  private void sendToProposers(Message m) {
-    String [] hostPort = getConfig().get("proposers").split(":");
-    sendMessage(m, hostPort[0], Integer.valueOf(hostPort[1]));
+  private void send_to_proposers(Message m) {
+    String [] hostPort = get_config().get("proposers").split(":");
+    send_message(m, hostPort[0], Integer.valueOf(hostPort[1]));
   }
 
 }

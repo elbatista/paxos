@@ -9,7 +9,6 @@ import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-//import java.util.ArrayList;
 import java.util.HashMap;
 
 import src.message.Message;
@@ -20,31 +19,55 @@ public abstract class PaxosEntity {
   public static int MCAST_DATAGRAM_PACKET_SIZE = 5000;
   public static int ACCEPTORS_QUORUM = 2;
   public static int NUM_OF_PROPOSERS = 2;
+  private HashMap<Integer, ConsensusInstance> consensus_instances = new HashMap<>();
 
-  //private ArrayList<ConsensusInstance> consensusInstances = new ArrayList<>();
+  public PaxosEntity(int id, HashMap<String, String> config){
+    set_id(id);
+    set_config(config);
+  }
 
-  public HashMap<String, String> getConfig() {
+  protected ConsensusInstance get_instance(int instance_id){
+    ConsensusInstance i = null;
+    
+    try{
+      i = consensus_instances.get(instance_id);
+    }
+    catch(IndexOutOfBoundsException e){}
+
+    if(i == null){
+      i = new ConsensusInstance(instance_id);
+      add_instance(i);
+    }
+    return i;
+  }
+
+  protected void add_instance(ConsensusInstance i){
+    consensus_instances.put(i.get_id(), i);
+  }
+
+  public HashMap<String, String> get_config() {
     return config;
   }
 
-  public void setConfig(HashMap<String, String> config) {
+  public void set_config(HashMap<String, String> config) {
     this.config = config;
   }
 
-  public int getId() {
+  public int get_id() {
     return id;
   }
   
-  public void setId(int id) {
+  public void set_id(int id) {
     this.id = id;
   }
 
-  public PaxosEntity(int id, HashMap<String, String> config){
-    setId(id);
-    setConfig(config);
+  protected void print_instances() {
+    consensus_instances.forEach((index, instance) -> {
+      System.out.println(instance.get_id()+": "+instance.get_decided_value());
+    });
   }
 
-  protected void createListener(String host, int port) {
+  protected void create_listener(String host, int port) {
     new Thread(new Runnable() {
       @Override
       public void run() {
@@ -66,7 +89,7 @@ public abstract class PaxosEntity {
             is.close();
 
             // Call up to the receiver
-            deliverMessage(m);
+            deliver_message(m);
 
             if(m == null){
               System.err.println("Error: null message received !!!!");
@@ -90,7 +113,7 @@ public abstract class PaxosEntity {
     }).start();
   }
 
-  protected void sendMessage(Message m, String host, int port){
+  protected void send_message(Message m, String host, int port){
     MulticastSocket socket = null;
     try {
       socket = new MulticastSocket(port);
@@ -110,6 +133,6 @@ public abstract class PaxosEntity {
     catch (IOException e){}
   }
 
-  protected abstract void deliverMessage(Message m);
+  protected abstract void deliver_message(Message m);
 
 }

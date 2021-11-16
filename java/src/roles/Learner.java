@@ -8,20 +8,25 @@ public class Learner extends PaxosEntity {
   
   public Learner(int id, HashMap<String, String> config){
     super(id, config);
-    String conf = getConfig().get("learners");
+    String conf = get_config().get("learners");
     String [] configSplit = conf.split(":");
     String host = configSplit[0];
     int port = Integer.valueOf(configSplit[1]);
-    System.out.println("Running Learner " + getId() + "; config: " + conf);
-    createListener(host, port);
+    System.out.println("Running Learner " + get_id() + "; config: " + conf);
+    create_listener(host, port);
   }
 
   @Override
-  protected void deliverMessage(Message m) {
-    switch(m.getType()){
-      case DECIDE: System.out.println("Decision received: " + m.getV_val());
+  protected void deliver_message(Message m) {
+    switch(m.get_type()){
+      case DECIDE: message_decision(m);
       default: return;
     }
+  }
+
+  private void message_decision(Message m) {
+    get_instance(m.get_instance_id()).set_decided_value(m.get_v_val());;
+    print_instances();
   }
 
 } 
