@@ -1,5 +1,7 @@
 package src.util;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import src.message.Message;
 
@@ -9,10 +11,11 @@ public class ConsensusInstance {
     // PROPOSER VALUES
     private long c_rnd; // highest-numbered round (or ballot) the proposer has started
     private long c_val; // value the proposer has picked for round c-rnd  
-    private long v;     // the value I want to propose
+    private long v = -1;     // the value I want to propose
     private int count_1B = 0, count_2B = 0;
     private ArrayList<Message> messages_1B = new ArrayList<>();
-    private boolean sent_2A, sent_decide;
+    private boolean sent_2A, decided = false;
+    private long started_time;
 
     // ACCEPTOR VALUES
     private long rnd = 0;   // highest-numbered round the acceptor has participated
@@ -21,10 +24,12 @@ public class ConsensusInstance {
 
     // LEARNER VALUES
     private long decided_value = -1;
-  
+    private AtomicBoolean executed = new AtomicBoolean();
 
     public ConsensusInstance(int id){
         this.id = id;
+        this.started_time = System.nanoTime();
+        this.executed.set(false);
     }
 
     public int get_id() {
@@ -32,6 +37,12 @@ public class ConsensusInstance {
     }
 
     // PROPOSER FUNCTIONS
+    public boolean timeout() {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started_time) > 500;
+    }
+    public void set_started_time(long started_time) {
+        this.started_time = started_time;
+    }
     public long get_c_rnd() {
         return c_rnd;
     }
@@ -40,6 +51,12 @@ public class ConsensusInstance {
         while((c_rnd % PaxosEntity.NUM_OF_PROPOSERS) != id_proposer){
             c_rnd++;
         }
+        // when incrementing the round, reset aux variables for the instance
+        count_1B = 0;
+        count_2B = 0;
+        messages_1B = new ArrayList<>();
+        sent_2A = false;
+        decided = false;
     }
     public long get_c_val() {
         return c_val;
@@ -99,11 +116,8 @@ public class ConsensusInstance {
     public void set_sent_2A(boolean sent_2a) {
         sent_2A = sent_2a;
     }
-    public boolean sent_decide() {
-        return sent_decide;
-    }
-    public void set_sent_decide(boolean sent_decide) {
-        this.sent_decide = sent_decide;
+    public boolean is_decided() {
+        return decided;
     }
 
 
@@ -134,7 +148,20 @@ public class ConsensusInstance {
     }
     public void set_decided_value(long decided_value) {
         this.decided_value = decided_value;
+        decided = true;
     }
+    public void execute(){
+        if(executed.get()) return;
+        System.out.println(decided_value);
+        executed.set(true);;
+    }
+    // public boolean isExecuted(){
+    //     return executed.get();
+    // }
 
+    @Override
+    public boolean equals(Object o){
+        return get_id() == ((ConsensusInstance) o).get_id();
+    }
     
 }

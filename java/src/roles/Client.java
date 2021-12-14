@@ -1,5 +1,6 @@
 package src.roles;
 import java.util.HashMap;
+import java.util.Scanner;
 
 import src.message.Message;
 import src.message.MessageTypes;
@@ -7,17 +8,23 @@ import src.util.PaxosEntity;
 
 public class Client extends PaxosEntity {
 
-  public Client(int id, HashMap<String, String> config, int value_to_propose){
+  public Client(int id, HashMap<String, String> config){
     super(id, config);
     System.out.println("Running Client " + get_id() + "; config: " + get_config().get("clients"));
-
-    Message m = new Message();
-    if(value_to_propose == -1)
-      value_to_propose = 123;
-
-    m.set_client_value(value_to_propose);
-    m.set_type(MessageTypes.CLIENT);
-    send_to_proposers(m);
+    Scanner scanner = new Scanner(System.in);
+    while(scanner.hasNextLine()){
+      Message m = new Message();
+      m.set_client_value(Integer.valueOf(scanner.nextLine()));
+      m.set_type(MessageTypes.CLIENT);
+      send_to_proposers(m);
+      // try {
+      //   Thread.sleep(20);
+      // }
+      // catch (InterruptedException e) {
+      //   e.printStackTrace();
+      // }
+    }
+    scanner.close();
   }
 
   private void send_to_proposers(Message m){

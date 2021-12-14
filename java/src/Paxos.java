@@ -11,26 +11,25 @@ import src.roles.Proposer;
 
 public class Paxos {
 
-  public Paxos(String role, int id, String config_file, int value_to_propose){
+  public Paxos(String role, int id, String config_file){
     switch (role) {
-      case "acceptor" : new Acceptor(id, parseConfigFile(config_file)); break;
-      case "proposer" : new Proposer(id, parseConfigFile(config_file)); break;
-      case "learner" : new Learner(id, parseConfigFile(config_file)); break;
-      case "client" : new Client(id, parseConfigFile(config_file), value_to_propose); break;
+      case "acceptor" : new Acceptor(id, parse_config_file(config_file)); break;
+      case "proposer" : new Proposer(id, parse_config_file(config_file)); break;
+      case "learner" : new Learner(id, parse_config_file(config_file)); break;
+      case "client" : new Client(id, parse_config_file(config_file)); break;
       default: break;
     }
   }
 
-  private HashMap<String, String> parseConfigFile(String config_file) {
+  private HashMap<String, String> parse_config_file(String config_file) {
     HashMap<String, String> config = new HashMap<>();
     BufferedReader reader;
 		try {
 			reader = new BufferedReader(new FileReader(config_file));
-			String line = reader.readLine();
-			while (line != null) {
+			String line;
+			for (line = reader.readLine(); line != null; line = reader.readLine()) {
         String [] lineSplit = line.split("\\s+");
         config.put(lineSplit[0], lineSplit[1]+":"+lineSplit[2]);
-				line = reader.readLine();
 			}
 			reader.close();
 		} catch (IOException e) {
@@ -40,13 +39,7 @@ public class Paxos {
   }
 
   public static void main(String[] args){
-    int value_to_propose = -1;
-    try{
-      value_to_propose = Integer.valueOf(args[3]);
-    }
-    catch(Exception e){}
-
-    new Paxos(args[0], Integer.valueOf(args[1]), args[2], value_to_propose);  
+    new Paxos(args[0], Integer.valueOf(args[1]), args[2]);  
   }
 
 }

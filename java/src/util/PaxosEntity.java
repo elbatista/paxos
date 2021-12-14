@@ -10,6 +10,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.HashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import src.message.Message;
 
@@ -20,10 +21,39 @@ public abstract class PaxosEntity {
   public static int ACCEPTORS_QUORUM = 2;
   public static int NUM_OF_PROPOSERS = 2;
   private HashMap<Integer, ConsensusInstance> consensus_instances = new HashMap<>();
+  private ReentrantLock lock = new ReentrantLock();
 
   public PaxosEntity(int id, HashMap<String, String> config){
     set_id(id);
     set_config(config);
+  }
+
+  public PaxosEntity(int id, HashMap<String, String> config, boolean print_instances){
+    set_id(id);
+    set_config(config);
+    if(print_instances)
+      new Thread(new Runnable() {
+        @Override
+        public void run() {
+          while(true){
+            try {
+              Thread.sleep(2000);
+            } catch (InterruptedException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+            }
+            System.out.println("Known instances so far: " + getNumInstances());
+          }
+        }
+      }).start();
+  }
+
+  protected ReentrantLock getLock(){
+    return lock;
+  }
+
+  protected int getNumInstances(){
+    return consensus_instances.size();
   }
 
   protected ConsensusInstance get_instance(int instance_id){
@@ -39,6 +69,10 @@ public abstract class PaxosEntity {
       add_instance(i);
     }
     return i;
+  }
+
+  protected ConsensusInstance get_existing_instance(int instance_id){
+    return consensus_instances.get(instance_id);
   }
 
   protected void add_instance(ConsensusInstance i){

@@ -9,7 +9,7 @@ import src.util.PaxosEntity;
 public class Acceptor extends PaxosEntity {
 
   public Acceptor(int id, HashMap<String, String> config){
-    super(id, config);
+    super(id, config, true);
     String conf = get_config().get("acceptors");
     String [] configSplit = conf.split(":");
     String host = configSplit[0];
@@ -34,7 +34,7 @@ public class Acceptor extends PaxosEntity {
     //      rnd ← c-rnd
     //      send (PHASE 1B, rnd, v-rnd, v-val) to proposer
     if(m.get_c_rnd() > instance.get_rnd()){
-      System.out.println("Instance "+instance.get_id()+", Message 1A, round " + m.get_c_rnd());
+      //System.out.println("Instance "+instance.get_id()+", Message 1A, round " + m.get_c_rnd());
       instance.set_rnd(m.get_c_rnd());
       m.set_type(MessageTypes.PHASE_1B);
       m.set_rnd(instance.get_rnd());
@@ -52,7 +52,7 @@ public class Acceptor extends PaxosEntity {
     //        v-val ← c-val
     //        send (PHASE 2B, v-rnd, v-val) to proposer
     if(m.get_c_rnd() >= instance.get_rnd()){
-      System.out.println("Instance "+instance.get_id()+", Message 2A, round " + m.get_c_rnd());
+      //System.out.println("Instance "+instance.get_id()+", Message 2A, round " + m.get_c_rnd());
       instance.set_v_rnd(m.get_c_rnd());
       instance.set_v_val(m.get_c_val());
       m.set_type(MessageTypes.PHASE_2B);
