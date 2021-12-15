@@ -51,22 +51,22 @@ public class Learner extends PaxosEntity {
       // executes in order of instance id
       // when next instance is not arriving (say 10 retries), or timeout, sends message to proposer asking for the instance
 
-      boolean acquired = sema.tryAcquire(50, TimeUnit.MILLISECONDS);
+      //boolean acquired = sema.tryAcquire(50, TimeUnit.MILLISECONDS);
       
-      //sema.acquire();
+      sema.acquire();
       
       getLock().lock();
 
       // // if time out or 10 retries send message to proposer
-      if(!acquired){// || retries >= 10){
-        Message m2 = new Message();
-        m2.set_instance_id(current_instance);
-        m2.set_type(MessageTypes.FILL_GAP);
-        send_to_proposers(m2);
-        retries = 0;
-        //System.out.println("Asking for instance " +current_instance);
-        return;
-      }
+      // if(!acquired){// || retries >= 10){
+      //   Message m2 = new Message();
+      //   m2.set_instance_id(current_instance);
+      //   m2.set_type(MessageTypes.FILL_GAP);
+      //   send_to_proposers(m2);
+      //   retries = 0;
+      //   //System.out.println("Asking for instance " +current_instance);
+      //   return;
+      // }
 
       ConsensusInstance instance = get_existing_instance(current_instance);
       if(instance != null){

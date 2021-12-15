@@ -38,7 +38,7 @@ public class ConsensusInstance {
 
     // PROPOSER FUNCTIONS
     public boolean timeout() {
-        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started_time) > 500;
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started_time) > 1000;
     }
     public void set_started_time(long started_time) {
         this.started_time = started_time;

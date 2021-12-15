@@ -1,7 +1,8 @@
 package src.roles;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import src.message.Message;
 import src.message.MessageTypes;
@@ -10,18 +11,70 @@ import src.util.PaxosEntity;
 
 public class Proposer extends PaxosEntity {
 
-  private int instance_count = 0, total_msgs = 0;
-  private LinkedList<ConsensusInstance> pending_instances = new LinkedList<>();
+  private int instance_count = 0;
+  private BlockingQueue<ConsensusInstance> pending_instances = new LinkedBlockingQueue<>();
+  private BlockingQueue<Message> client_messages = new LinkedBlockingQueue<>();
+  private BlockingQueue<Message> acceptor_1B_messages = new LinkedBlockingQueue<>();
+  private BlockingQueue<Message> acceptor_2B_messages = new LinkedBlockingQueue<>();
+  private BlockingQueue<Message> learner_messages = new LinkedBlockingQueue<>();
 
   public Proposer(int id, HashMap<String, String> config){
-    super(id, config, true);
+    super(id, config);
     String conf = get_config().get("proposers");
     String [] configSplit = conf.split(":");
     String host = configSplit[0];
     int port = Integer.valueOf(configSplit[1]);
     System.out.println("Running Proposer " + get_id() + "; config: " + conf);
     create_listener(host, port);
+    create_clients_listener();
+    create_acceptors_1B_listener();
+    create_acceptors_2B_listener();
     create_pending_instances_verifier();
+  }
+
+  private void create_clients_listener() {
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        while(true){
+          try {
+            message_from_client(client_messages.take());
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }).start();
+  }
+
+  private void create_acceptors_1B_listener() {
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        while(true){
+          try {
+            message_1B(acceptor_1B_messages.take()); 
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }).start();
+  }
+
+  private void create_acceptors_2B_listener() {
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        while(true){
+          try {
+            message_2B(acceptor_2B_messages.take()); 
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }).start();
   }
 
   private void create_pending_instances_verifier() {
@@ -36,18 +89,23 @@ public class Proposer extends PaxosEntity {
 
   @Override
   protected void deliver_message(Message m) {
-    switch(m.get_type()){
-      case CLIENT: message_from_client(m); break;
-      case PHASE_1B: message_1B(m); break;
-      case PHASE_2B: message_2B(m); break;
-      case FILL_GAP: message_fill_gap(m); break;
-      default: return;
-    }    
+    try{
+      switch(m.get_type()){
+        case CLIENT: client_messages.put(m); return;
+        case PHASE_1B: acceptor_1B_messages.put(m); return;
+        case PHASE_2B: acceptor_2B_messages.put(m); return;
+        case FILL_GAP: learner_messages.put(m); return;
+        default: return;
+      }
+    }
+    catch(InterruptedException e){
+      e.printStackTrace();
+    }
   }
 
   private void message_fill_gap(Message m) {
-    getLock().lock();
-    try {
+    // getLock().lock();
+    // try {
       ConsensusInstance instance = get_existing_instance(m.get_instance_id());
       if(instance == null) {
         System.out.println("Received fill gap, for unknown instance: "+m.get_instance_id());
@@ -62,20 +120,22 @@ public class Proposer extends PaxosEntity {
         //System.out.println("Just sent decision for instance " + instance.get_id());
       }
       else {
+        getLock().lock();
         if(instance.get_v() > -1 && !pending_instances.contains(instance)){
           System.out.println("Received fill gap, for instance not yet decided: " + instance.get_id() + "; Adding to pending");
           pending_instances.add(instance);
         }
+        getLock().unlock();
       }
-    }
-    finally{
-      getLock().unlock();
-    }
+    // }
+    // finally{
+    //   getLock().unlock();
+    // }
   }
 
   private void message_1B(Message m) {
-    getLock().lock();
-    try {
+    // getLock().lock();
+    // try {
       ConsensusInstance instance = get_instance(m.get_instance_id());
 
       // upon receiving (PHASE 1B, rnd, v-rnd, v-val) from Qa such that c-rnd = rnd
@@ -119,15 +179,15 @@ public class Proposer extends PaxosEntity {
           instance.set_sent_2A(true);
         }
       }
-    }
-    finally{
-      getLock().unlock();
-    }
+    // }
+    // finally{
+    //   getLock().unlock();
+    // }
   }
 
   private void message_2B(Message m) {
-    getLock().lock();
-    try{
+    // getLock().lock();
+    // try{
       ConsensusInstance instance = get_instance(m.get_instance_id());
       // upon receiving (PHASE 2B, v-rnd, v-val) from Qa
       //    if for all received messages: v-rnd = c-rnd then
@@ -139,23 +199,21 @@ public class Proposer extends PaxosEntity {
           // v-val is already set in message.v_val
           m.set_type(MessageTypes.DECIDE);
           instance.set_decided_value(m.get_v_val());
+          getLock().lock();
           pending_instances.remove(instance);
+          getLock().unlock();
           send_to_learners(m);
         }
       }
-    }
-    finally{
-      getLock().unlock();
-    }
+    // }
+    // finally{
+    //   getLock().unlock();
+    // }
   }
 
   private void message_from_client(Message m) {
-
-    //System.out.println("Received " + m.get_client_value() + " (" + (total_msgs++) + ")");
-    //if(1==1) return;
-
-    getLock().lock();
-    try{
+    // getLock().lock();
+    // try{
       // each message from client generates a new consensus instance
       ConsensusInstance instance = new ConsensusInstance(instance_count);
       instance_count++;
@@ -173,22 +231,32 @@ public class Proposer extends PaxosEntity {
       m.set_c_rnd(instance.get_c_rnd());
       
       add_instance(instance);
-      pending_instances.add(instance);
+      getLock().lock();
+      try {
+        pending_instances.put(instance);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      getLock().unlock();
       
       send_to_acceptors(m);
-    }
-    finally{
-      getLock().unlock();
-    }
+    // }
+    // finally{
+    //   getLock().unlock();
+    // }
   }
 
   private void verify_pending_instances(){
-    try {Thread.sleep(30);} catch (InterruptedException e) {}
+    try {Thread.sleep(100);} catch (InterruptedException e) {}
+
+    System.out.println("Pending instances: " + pending_instances.size());
+    System.out.println("2B Messages: " + acceptor_2B_messages.size());
+
     getLock().lock();
-    try{
-      for (ConsensusInstance instance : pending_instances) {
+    try {
+      ConsensusInstance instance = pending_instances.peek();
+      if(instance != null){
         if(!instance.is_decided() && instance.timeout()){
-          //System.out.println("Instance timeout " + instance.get_id() + "; c-rnd " + instance.get_c_rnd());
           instance.increment_c_rnd(get_id());
           Message m = new Message();
           m.set_instance_id(instance.get_id());
@@ -196,9 +264,16 @@ public class Proposer extends PaxosEntity {
           m.set_c_rnd(instance.get_c_rnd());
           //System.out.println("Resending P1A instance " + instance.get_id() + "; new c-rnd " + instance.get_c_rnd());
           send_to_acceptors(m);
-          return;
         }
       }
+    
+      // for (ConsensusInstance instance : pending_instances) {
+      //   if(!instance.is_decided() && instance.timeout()){
+      //     //System.out.println("Instance timeout " + instance.get_id() + "; c-rnd " + instance.get_c_rnd());
+          
+      //     return;
+      //   }
+      // }
     }
     finally{
       getLock().unlock();

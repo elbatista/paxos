@@ -10,6 +10,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import src.message.Message;
@@ -20,12 +21,11 @@ public abstract class PaxosEntity {
   public static int MCAST_DATAGRAM_PACKET_SIZE = 5000;
   public static int ACCEPTORS_QUORUM = 2;
   public static int NUM_OF_PROPOSERS = 2;
-  private HashMap<Integer, ConsensusInstance> consensus_instances = new HashMap<>();
+  private ConcurrentHashMap<Integer, ConsensusInstance> consensus_instances = new ConcurrentHashMap<>();
   private ReentrantLock lock = new ReentrantLock();
 
   public PaxosEntity(int id, HashMap<String, String> config){
-    set_id(id);
-    set_config(config);
+    this(id, config, false);
   }
 
   public PaxosEntity(int id, HashMap<String, String> config, boolean print_instances){

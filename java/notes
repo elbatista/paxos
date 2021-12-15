@@ -1,0 +1,3 @@
+
+conjunto de instancias deve ser uma concurrent list
+cada instancia tem um lock, assim eu bloqueio por instancia
