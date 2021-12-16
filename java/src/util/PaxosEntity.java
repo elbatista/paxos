@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import src.message.Message;
 
-public abstract class PaxosEntity {
+public abstract class PaxosEntity{
   private int id;
   private HashMap<String, String> config = new HashMap<>();
   public static int MCAST_DATAGRAM_PACKET_SIZE = 5000;
@@ -36,13 +36,8 @@ public abstract class PaxosEntity {
         @Override
         public void run() {
           while(true){
-            try {
-              Thread.sleep(2000);
-            } catch (InterruptedException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
-            }
-            System.out.println("Known instances so far: " + getNumInstances());
+            try {Thread.sleep(2000);} catch (InterruptedException e) {}
+            System.out.println("Known instances so far: " + consensus_instances.size());
           }
         }
       }).start();
@@ -52,18 +47,10 @@ public abstract class PaxosEntity {
     return lock;
   }
 
-  protected int getNumInstances(){
-    return consensus_instances.size();
-  }
-
   protected ConsensusInstance get_instance(int instance_id){
     ConsensusInstance i = null;
-    
-    try{
-      i = consensus_instances.get(instance_id);
-    }
+    try{i = consensus_instances.get(instance_id);}
     catch(IndexOutOfBoundsException e){}
-
     if(i == null){
       i = new ConsensusInstance(instance_id);
       add_instance(i);
@@ -93,12 +80,6 @@ public abstract class PaxosEntity {
   
   public void set_id(int id) {
     this.id = id;
-  }
-
-  protected void print_instances() {
-    consensus_instances.forEach((index, instance) -> {
-      System.out.println(instance.get_id()+": "+instance.get_decided_value());
-    });
   }
 
   protected void create_listener(String host, int port) {

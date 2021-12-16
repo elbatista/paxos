@@ -1,7 +1,7 @@
 package src.roles;
 import java.util.HashMap;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import src.message.Message;
 import src.message.MessageTypes;
@@ -10,9 +10,12 @@ import src.util.PaxosEntity;
 
 public class Learner extends PaxosEntity {
 
-  private Semaphore sema = new Semaphore(0);
-  private int current_instance = 1, retries = 0;
-  
+  private int current_instance = 0;
+  private int gratest_instance = 0;
+  private BlockingQueue<Message> decision_messages = new LinkedBlockingQueue<>();
+  private BlockingQueue<Message> fill_gap_messages = new LinkedBlockingQueue<>();
+  private HashMap<Integer, ConsensusInstance> instances = new HashMap<>();
+
   public Learner(int id, HashMap<String, String> config){
     super(id, config);
     String conf = get_config().get("learners");
@@ -21,82 +24,116 @@ public class Learner extends PaxosEntity {
     int port = Integer.valueOf(configSplit[1]);
     System.out.println("Running Learner " + get_id() + "; config: " + conf);
     create_listener(host, port);
-    create_executor();
+    create_local_theads();
   }
 
-  private void create_executor() {
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        while(true)
-          process_instances();
-      }
-    }).start();
+  private void create_local_theads() {
+    new Thread(new Runnable(){public void run(){while(true) process_instances();}}).start();
+    new Thread(new Runnable(){public void run(){while(true) process_decision_messages();}}).start();
+    new Thread(new Runnable(){public void run(){while(true) process_fill_gap_messages();}}).start();
+    new Thread(new Runnable(){public void run(){
+      try {Thread.sleep(2000);} catch (InterruptedException e1) {}
+      while(true) fill_gaps();
+    }}).start();
   }
 
   @Override
   protected void deliver_message(Message m) {
-    switch(m.get_type()){
-      case DECIDE: message_decision(m); break;
-      default: return;
+    try {
+      switch(m.get_type()){
+        case DECIDE: decision_messages.put(m); return;
+        case FILL_GAP: fill_gap_messages.put(m); return;
+        default: return;
+      }
+    }
+    catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void process_decision_messages(){
+    try {
+      Message m = decision_messages.take();
+      int iid = m.get_instance_id();
+      ConsensusInstance instance = null;
+
+      //if(iid > 2000) {System.out.println("Received weird instance "+iid); System.exit(0);}
+
+      getLock().lock();
+
+      instance = instances.get(iid);
+
+      if(instance == null){
+        instance = new ConsensusInstance(iid);
+        instance.set_decided_value(m.get_v_val());
+        instances.put(iid, instance);
+        if(iid > gratest_instance) gratest_instance = iid;
+      }
+
+      getLock().unlock();
+    }
+    catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void process_fill_gap_messages(){
+    try {
+      Message m = fill_gap_messages.take();
+      int iid = m.get_instance_id();
+      ConsensusInstance instance = null;
+
+      //if(iid > 100000) {System.out.println("Received weird fill gap instance "+iid); System.exit(0);}
+
+      getLock().lock();
+
+      instance = instances.get(iid);
+
+      if(instance == null){
+        instance = new ConsensusInstance(iid);
+        instance.set_decided_value(m.get_v_val());
+        instances.put(iid, instance);
+      }
+
+      getLock().unlock();
+    }
+    catch (InterruptedException e) {
+      e.printStackTrace();
     }
   }
 
   private void process_instances(){
-    try {
-      // executor thread
-      // wakes up with a new instance (decision message) or timeout
-      // keeps track of the last executed instance
-      // starts in instance zero
-      // executes in order of instance id
-      // when next instance is not arriving (say 10 retries), or timeout, sends message to proposer asking for the instance
-
-      //boolean acquired = sema.tryAcquire(50, TimeUnit.MILLISECONDS);
-      
-      sema.acquire();
-      
-      getLock().lock();
-
-      // // if time out or 10 retries send message to proposer
-      // if(!acquired){// || retries >= 10){
-      //   Message m2 = new Message();
-      //   m2.set_instance_id(current_instance);
-      //   m2.set_type(MessageTypes.FILL_GAP);
-      //   send_to_proposers(m2);
-      //   retries = 0;
-      //   //System.out.println("Asking for instance " +current_instance);
-      //   return;
-      // }
-
-      ConsensusInstance instance = get_existing_instance(current_instance);
-      if(instance != null){
-        instance.execute();
-        //retries = 0;
-        current_instance++;
-      }
-      // else  {
-      //   retries++;
-      // }
-
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-    finally{
+    getLock().lock();
+    ConsensusInstance instance = instances.get(current_instance);
+    if(instance != null){
+      instance.execute();
+      current_instance++;
       getLock().unlock();
+    }
+    else {
+      getLock().unlock();
+      Thread.yield();
     }
   }
 
-  private void message_decision(Message m) {
-    getLock().lock();
+  private void fill_gaps(){
     try {
-      // get_instance also inserts the instance in the set (it creates a new one if not exists)
-      ConsensusInstance instance = get_instance(m.get_instance_id());
-      instance.set_decided_value(m.get_v_val());
-      // signals semaphore
-      sema.release();
-    }
-    finally{
+
+      Thread.sleep(100);
+
+      getLock().lock();
+
+      if(gratest_instance == 0 || current_instance < gratest_instance){
+        Message m2 = new Message();
+        m2.set_instance_id(current_instance);
+        m2.set_type(MessageTypes.FILL_GAP);
+        send_to_proposers(m2);
+      }
+
       getLock().unlock();
+
+    } catch (InterruptedException e) {
+      e.printStackTrace();
     }
   }
 

@@ -21,8 +21,8 @@ public class Acceptor extends PaxosEntity {
   @Override
   protected void deliver_message(Message m) {
     switch(m.get_type()){
-      case PHASE_1A: message_1A(m); break;
-      case PHASE_2A: message_2A(m); break;
+      case PHASE_1A: message_1A(m); return;
+      case PHASE_2A: message_2A(m); return;
       default: return;
     }    
   }
@@ -34,13 +34,15 @@ public class Acceptor extends PaxosEntity {
     //      rnd ← c-rnd
     //      send (PHASE 1B, rnd, v-rnd, v-val) to proposer
     if(m.get_c_rnd() > instance.get_rnd()){
-      //System.out.println("Instance "+instance.get_id()+", Message 1A, round " + m.get_c_rnd());
       instance.set_rnd(m.get_c_rnd());
       m.set_type(MessageTypes.PHASE_1B);
       m.set_rnd(instance.get_rnd());
       m.set_v_rnd(instance.get_v_rnd());
       m.set_v_val(instance.get_v_val());
       send_to_proposers(m);
+    }
+    else {
+      System.out.println("Ignoring 1A " + m.get_instance_id());
     }
   }
 
@@ -52,13 +54,16 @@ public class Acceptor extends PaxosEntity {
     //        v-val ← c-val
     //        send (PHASE 2B, v-rnd, v-val) to proposer
     if(m.get_c_rnd() >= instance.get_rnd()){
-      //System.out.println("Instance "+instance.get_id()+", Message 2A, round " + m.get_c_rnd());
       instance.set_v_rnd(m.get_c_rnd());
       instance.set_v_val(m.get_c_val());
       m.set_type(MessageTypes.PHASE_2B);
       m.set_v_rnd(instance.get_v_rnd());
       m.set_v_val(instance.get_v_val());
       send_to_proposers(m);
+      //System.out.println("Sending 2A " + m.get_instance_id() +" "+ m.get_c_rnd() +" "+ instance.get_rnd());
+    }
+    else {
+      System.out.println("Ignoring 2B " + m.get_instance_id());
     }
   }
 

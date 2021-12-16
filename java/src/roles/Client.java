@@ -17,12 +17,6 @@ public class Client extends PaxosEntity {
       m.set_client_value(Integer.valueOf(scanner.nextLine()));
       m.set_type(MessageTypes.CLIENT);
       send_to_proposers(m);
-      // try {
-      //   Thread.sleep(20);
-      // }
-      // catch (InterruptedException e) {
-      //   e.printStackTrace();
-      // }
     }
     scanner.close();
   }
