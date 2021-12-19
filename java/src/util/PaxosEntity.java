@@ -104,7 +104,7 @@ public abstract class PaxosEntity{
   protected void send_message(Message m, String host, int port){
 
     // When testing with message loss (5% of message loss):
-    if(new Random().nextInt(100) <= 5) return;
+    //if(new Random().nextInt(100) <= 5) return;
 
     MulticastSocket socket = null;
     try {
