@@ -14,6 +14,7 @@ public class ConsensusInstance {
     private long v = -1;        // the value I want to propose
     private int count_1B = 0, count_2B = 0;
     private ArrayList<Message> messages_1B = new ArrayList<>();
+    private ArrayList<Message> messages_2B = new ArrayList<>();
     private boolean sent_2A, decided = false, executed = false;
 
     // ACCEPTOR VALUES
@@ -47,7 +48,6 @@ public class ConsensusInstance {
     public int get_count_2B() {return count_2B;}
     public ArrayList<Message> get_messages_1B() {return messages_1B;}
     public boolean has_quorum_1B() {return (count_1B >= PaxosEntity.ACCEPTORS_QUORUM);}
-    public void add_message_2B(Message m) {count_2B++;}
     public boolean has_quorum_2B() {return (count_2B >= PaxosEntity.ACCEPTORS_QUORUM);}
     public boolean sent_2A() {return sent_2A;}
     public void set_sent_2A(boolean sent_2a) {sent_2A = sent_2a;}
@@ -61,6 +61,7 @@ public class ConsensusInstance {
         count_1B = 0;
         count_2B = 0;
         messages_1B = new ArrayList<>();
+        messages_2B = new ArrayList<>();
         sent_2A = false;
         decided = false;
         executed = false;
@@ -72,6 +73,23 @@ public class ConsensusInstance {
     public void add_message_1B(Message m) {
         messages_1B.add(m);
         count_1B++;
+    }
+    public void add_message_2B(Message m) {
+        messages_2B.add(m); 
+        count_2B++;
+    }
+    public boolean has_quorum_2B_in_highest_round(){
+        long round = 0;
+        for (Message m : messages_2B){
+            if(m.get_v_rnd() > round)
+                round = m.get_v_rnd();
+        }
+        int count = 0;
+        for (Message m : messages_2B){
+            if(m.get_v_rnd() == round)
+                count++;
+        }
+        return count >= PaxosEntity.ACCEPTORS_QUORUM;
     }
     public long get_largest_v_rnd() {
         long k = 0;

@@ -27,8 +27,8 @@ public class Acceptor extends PaxosEntity {
   }
 
   private void create_local_threads() {
-    new Thread(new Runnable(){public void run(){while(true) try{message_1A(proposer_1A_messages.take());}catch(Exception e){e.printStackTrace();}}}).start();
-    new Thread(new Runnable(){public void run(){while(true) try{message_2A(proposer_2A_messages.take());}catch(Exception e){e.printStackTrace();}}}).start();
+    new Thread(new Runnable(){public void run(){while(true) try {message_1A(proposer_1A_messages.take());} catch(Exception e){e.printStackTrace();}}}).start();
+    new Thread(new Runnable(){public void run(){while(true) try {message_2A(proposer_2A_messages.take());} catch(Exception e){e.printStackTrace();}}}).start();
   }
 
   @Override
@@ -78,6 +78,7 @@ public class Acceptor extends PaxosEntity {
       m.set_v_rnd(instance.get_v_rnd());
       m.set_v_val(instance.get_v_val());
       send_to_proposers(m);
+      send_to_learners(m);
     }
     instance.unlock();
   }

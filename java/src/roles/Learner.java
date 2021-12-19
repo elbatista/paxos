@@ -38,7 +38,7 @@ public class Learner extends PaxosEntity {
   protected void deliver_message(Message m) {
     try {
       switch(m.get_type()){
-        case DECIDE: decision_messages.put(m); return;
+        case PHASE_2B: decision_messages.put(m); return;
         case FILL_GAP: fill_gap_messages.put(m); return;
         case CATCH_UP: process_catch_up_messages(m); return;
         default: return;
@@ -88,9 +88,13 @@ public class Learner extends PaxosEntity {
       instance = instances.get(iid);
       if(instance == null){
         instance = new ConsensusInstance(iid);
-        instance.set_decided_value(m.get_v_val());
         instances.put(iid, instance);
         if(iid > gratest_instance) gratest_instance = iid;
+      }
+      instance.add_message_2B(m);
+      if(instance.has_quorum_2B() && !instance.is_decided()){
+        if(instance.has_quorum_2B_in_highest_round())
+          instance.set_decided_value(m.get_v_val());
       }
       getLock().unlock();
     }
@@ -121,7 +125,7 @@ public class Learner extends PaxosEntity {
   private void process_instances(){
     getLock().lock();
     ConsensusInstance instance = instances.get(current_instance);
-    if(instance != null){
+    if(instance != null && instance.is_decided()){
       instance.execute();
       current_instance++;
       getLock().unlock();

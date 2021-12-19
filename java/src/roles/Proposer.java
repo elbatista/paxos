@@ -136,9 +136,7 @@ public class Proposer extends PaxosEntity {
       instance.add_message_2B(m);
       if(instance.has_quorum_2B() && !instance.is_decided()){
         // v-val is already set in message.v_val
-        m.set_type(MessageTypes.DECIDE);
         instance.set_decided_value(m.get_v_val());
-        send_to_learners(m);
       }
     }
     instance.unlock();
