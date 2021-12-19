@@ -1,8 +1,10 @@
 # Paxos protocol implementation
 
-The project was written in java.
+The project was implemented in java.
 
 It needs at least java 8 to run.
+
+For the optional optimizations, I implemented the one where the acceptors send 2B messages directly to learners.
 
 <br>
 
