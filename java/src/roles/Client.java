@@ -10,7 +10,6 @@ public class Client extends PaxosEntity {
 
   public Client(int id, HashMap<String, String> config){
     super(id, config);
-    System.out.println("Running Client " + get_id() + "; config: " + get_config().get("clients"));
     Scanner scanner = new Scanner(System.in);
     while(scanner.hasNextLine()){
       Message m = new Message();
@@ -19,11 +18,6 @@ public class Client extends PaxosEntity {
       send_to_proposers(m);
     }
     scanner.close();
-  }
-
-  private void send_to_proposers(Message m){
-    String [] hostPort = get_config().get("proposers").split(":");
-    send_message(m, hostPort[0], Integer.valueOf(hostPort[1]));
   }
 
   @Override

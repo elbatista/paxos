@@ -10,7 +10,7 @@ import src.util.PaxosEntity;
 
 public class Learner extends PaxosEntity {
 
-  private int current_instance = 0;
+  private int current_instance = 1;
   private int gratest_instance = 0;
   private BlockingQueue<Message> decision_messages = new LinkedBlockingQueue<>();
   private BlockingQueue<Message> fill_gap_messages = new LinkedBlockingQueue<>();
@@ -22,7 +22,6 @@ public class Learner extends PaxosEntity {
     String [] configSplit = conf.split(":");
     String host = configSplit[0];
     int port = Integer.valueOf(configSplit[1]);
-    System.out.println("Running Learner " + get_id() + "; config: " + conf);
     create_listener(host, port);
     create_local_theads();
   }
@@ -31,10 +30,8 @@ public class Learner extends PaxosEntity {
     new Thread(new Runnable(){public void run(){while(true) process_instances();}}).start();
     new Thread(new Runnable(){public void run(){while(true) process_decision_messages();}}).start();
     new Thread(new Runnable(){public void run(){while(true) process_fill_gap_messages();}}).start();
-    new Thread(new Runnable(){public void run(){
-      try {Thread.sleep(2000);} catch (InterruptedException e1) {}
-      while(true) fill_gaps();
-    }}).start();
+    new Thread(new Runnable(){public void run(){while(true) send_fill_gap();}}).start();
+    new Thread(new Runnable(){public void run(){while(true) send_catch_up();}}).start();
   }
 
   @Override
@@ -43,6 +40,7 @@ public class Learner extends PaxosEntity {
       switch(m.get_type()){
         case DECIDE: decision_messages.put(m); return;
         case FILL_GAP: fill_gap_messages.put(m); return;
+        case CATCH_UP: process_catch_up_messages(m); return;
         default: return;
       }
     }
@@ -51,25 +49,49 @@ public class Learner extends PaxosEntity {
     }
   }
 
+  private void send_catch_up(){
+    Message m = new Message();
+    m.set_type(MessageTypes.CATCH_UP);
+    send_to_proposers(m);
+    try {Thread.sleep(2000);} catch (InterruptedException e1) {}
+  }
+
+  private void send_fill_gap(){
+    try {
+      Thread.sleep(10);
+      getLock().lock();
+      if(current_instance <= gratest_instance){
+        Message m = new Message();
+        m.set_instance_id(current_instance);
+        m.set_type(MessageTypes.FILL_GAP);
+        send_to_proposers(m);
+      }
+      getLock().unlock();
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void process_catch_up_messages(Message m) {
+    getLock().lock();
+    if(m.get_instance_id() > gratest_instance)
+      gratest_instance = m.get_instance_id();
+    getLock().unlock();
+  }
+
   private void process_decision_messages(){
     try {
       Message m = decision_messages.take();
       int iid = m.get_instance_id();
       ConsensusInstance instance = null;
-
-      //if(iid > 2000) {System.out.println("Received weird instance "+iid); System.exit(0);}
-
       getLock().lock();
-
       instance = instances.get(iid);
-
       if(instance == null){
         instance = new ConsensusInstance(iid);
         instance.set_decided_value(m.get_v_val());
         instances.put(iid, instance);
         if(iid > gratest_instance) gratest_instance = iid;
       }
-
       getLock().unlock();
     }
     catch (InterruptedException e) {
@@ -82,19 +104,13 @@ public class Learner extends PaxosEntity {
       Message m = fill_gap_messages.take();
       int iid = m.get_instance_id();
       ConsensusInstance instance = null;
-
-      //if(iid > 100000) {System.out.println("Received weird fill gap instance "+iid); System.exit(0);}
-
       getLock().lock();
-
       instance = instances.get(iid);
-
       if(instance == null){
         instance = new ConsensusInstance(iid);
         instance.set_decided_value(m.get_v_val());
         instances.put(iid, instance);
       }
-
       getLock().unlock();
     }
     catch (InterruptedException e) {
@@ -116,29 +132,4 @@ public class Learner extends PaxosEntity {
     }
   }
 
-  private void fill_gaps(){
-    try {
-
-      Thread.sleep(100);
-
-      getLock().lock();
-
-      if(gratest_instance == 0 || current_instance < gratest_instance){
-        Message m2 = new Message();
-        m2.set_instance_id(current_instance);
-        m2.set_type(MessageTypes.FILL_GAP);
-        send_to_proposers(m2);
-      }
-
-      getLock().unlock();
-
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-  }
-
-  private void send_to_proposers(Message m){
-    String [] hostPort = get_config().get("proposers").split(":");
-    send_message(m, hostPort[0], Integer.valueOf(hostPort[1]));
-  }
 }

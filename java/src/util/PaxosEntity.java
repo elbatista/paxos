@@ -10,12 +10,14 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.HashMap;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import src.message.Message;
 
 public abstract class PaxosEntity{
+  
   private int id;
   private HashMap<String, String> config = new HashMap<>();
   public static int MCAST_DATAGRAM_PACKET_SIZE = 5000;
@@ -29,57 +31,28 @@ public abstract class PaxosEntity{
   }
 
   public PaxosEntity(int id, HashMap<String, String> config, boolean print_instances){
-    set_id(id);
-    set_config(config);
-    if(print_instances)
+    this.id = id;
+    this.config = config;
+    if(print_instances && get_id() ==0 )
       new Thread(new Runnable() {
         @Override
         public void run() {
           while(true){
-            try {Thread.sleep(2000);} catch (InterruptedException e) {}
+            try {Thread.sleep(5000);} catch (InterruptedException e) {}
             System.out.println("Known instances so far: " + consensus_instances.size());
           }
         }
       }).start();
   }
 
-  protected ReentrantLock getLock(){
-    return lock;
-  }
-
   protected ConsensusInstance get_instance(int instance_id){
     ConsensusInstance i = null;
-    try{i = consensus_instances.get(instance_id);}
-    catch(IndexOutOfBoundsException e){}
+    try{i = consensus_instances.get(instance_id);}catch(IndexOutOfBoundsException e){}
     if(i == null){
       i = new ConsensusInstance(instance_id);
       add_instance(i);
     }
     return i;
-  }
-
-  protected ConsensusInstance get_existing_instance(int instance_id){
-    return consensus_instances.get(instance_id);
-  }
-
-  protected void add_instance(ConsensusInstance i){
-    consensus_instances.put(i.get_id(), i);
-  }
-
-  public HashMap<String, String> get_config() {
-    return config;
-  }
-
-  public void set_config(HashMap<String, String> config) {
-    this.config = config;
-  }
-
-  public int get_id() {
-    return id;
-  }
-  
-  public void set_id(int id) {
-    this.id = id;
   }
 
   protected void create_listener(String host, int port) {
@@ -129,6 +102,10 @@ public abstract class PaxosEntity{
   }
 
   protected void send_message(Message m, String host, int port){
+
+    // When testing with message loss (5% of message loss):
+    if(new Random().nextInt(100) <= 5) return;
+
     MulticastSocket socket = null;
     try {
       socket = new MulticastSocket(port);
@@ -140,7 +117,6 @@ public abstract class PaxosEntity{
       os.flush();
       byte[] sendBuf = byteStream.toByteArray();
       DatagramPacket packet = new DatagramPacket(sendBuf, sendBuf.length, address, port);
-      //int byteCount = packet.getLength();
       socket.send(packet);
       socket.close();
       os.close();
@@ -148,6 +124,26 @@ public abstract class PaxosEntity{
     catch (IOException e){}
   }
 
-  protected abstract void deliver_message(Message m);
+  protected void send_to_proposers(Message m){
+    String [] hostPort = get_config().get("proposers").split(":");
+    send_message(m, hostPort[0], Integer.valueOf(hostPort[1]));
+  }
 
+  protected void send_to_learners(Message m) {
+    String [] hostPort = get_config().get("learners").split(":");
+    send_message(m, hostPort[0], Integer.valueOf(hostPort[1]));
+  }
+
+  protected void send_to_acceptors(Message m) {
+    String [] hostPort = get_config().get("acceptors").split(":");
+    send_message(m, hostPort[0], Integer.valueOf(hostPort[1]));
+  }
+
+  protected abstract void deliver_message(Message m);
+  protected ReentrantLock getLock(){return lock;}
+  protected ConsensusInstance get_existing_instance(int instance_id){return consensus_instances.get(instance_id);}
+  protected void add_instance(ConsensusInstance i){consensus_instances.put(i.get_id(), i);}
+  public HashMap<String, String> get_config() {return config;}
+  public int get_id() {return id;}
+  
 }
