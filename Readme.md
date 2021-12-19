@@ -1,6 +1,10 @@
 # Paxos protocol implementation
 
-The project was written in java. It needs at least java 8 to run.
+The project was written in java.
+
+It needs at least java 8 to run.
+
+<br>
 
 ## How to build
 Use [ant](https://ant.apache.org/) to build the project.
@@ -23,12 +27,13 @@ Example:
 
     BUILD SUCCESSFUL
     Total time: 0 seconds
+<br>
 
 ## How to run
 
 A simple execution can be run as follows.
 
-In separate terminal windows (separate machines in the cluster), run the commands:
+In separate terminal windows (separate machines in our cluster, for example), run the commands:
 
 Start a proposer:
 
@@ -53,9 +58,11 @@ Generate the input for clients and start a client:
     $ node7 % ./generate.sh 100 > prop1
     $ node7 % ./client.sh 0 paxos.conf < prop1
 
+<br>
+<br>
 
 The application does not perform well for large inputs in a local environment, as there will be a heavy load of messages and high levels of thread contention in the system.
 
-So, for example, the final waiting time in the `run.sh` script (the last sleep cmd) should be increased when running local tests for 10000 input values (in my tests, it took about 2 minutes for the learners to learn all values proposed by clients).
+So, for example, the final waiting time in the `run.sh` script (the last sleep cmd) should be increased when running local tests for 10000 input values (in my tests, it took about 2 minutes for the learners to learn all values proposed by clients in this case).
 
 It performs OK in our cluster, though, running each process in different machines.

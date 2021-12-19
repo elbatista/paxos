@@ -10,7 +10,6 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.HashMap;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -27,22 +26,8 @@ public abstract class PaxosEntity{
   private ReentrantLock lock = new ReentrantLock();
 
   public PaxosEntity(int id, HashMap<String, String> config){
-    this(id, config, false);
-  }
-
-  public PaxosEntity(int id, HashMap<String, String> config, boolean print_instances){
     this.id = id;
     this.config = config;
-    if(print_instances && get_id() ==0 )
-      new Thread(new Runnable() {
-        @Override
-        public void run() {
-          while(true){
-            try {Thread.sleep(5000);} catch (InterruptedException e) {}
-            System.out.println("Known instances so far: " + consensus_instances.size());
-          }
-        }
-      }).start();
   }
 
   protected ConsensusInstance get_instance(int instance_id){
@@ -102,10 +87,6 @@ public abstract class PaxosEntity{
   }
 
   protected void send_message(Message m, String host, int port){
-
-    // When testing with message loss (5% of message loss):
-    //if(new Random().nextInt(100) <= 5) return;
-
     MulticastSocket socket = null;
     try {
       socket = new MulticastSocket(port);
